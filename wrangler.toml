@@ -1,0 +1,7 @@
+name = "keep-d1"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "keep_db"
+database_id = "ad6b39c3-cddb-42d9-af83-62fa37d7a04c"
