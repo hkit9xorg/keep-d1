@@ -151,14 +151,40 @@ textarea::placeholder,
     gap: 10px;
 }
 
+.composer-image {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 12px;
+    padding: 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--panel-soft);
+}
+
+.composer-image img {
+    width: 100%;
+    max-height: 260px;
+    border-radius: 6px;
+    object-fit: contain;
+    background: #ffffff;
+}
+
+.composer-error {
+    margin: 0;
+    color: #991b1b;
+    font-size: 0.92rem;
+    font-weight: 650;
+}
+
 button {
     min-height: 40px;
     border: 0;
     border-radius: var(--radius);
-    padding: 0 14px;
+    padding: 0 8px;
     cursor: pointer;
     font: inherit;
-    font-weight: 700;
+    font-weight: 500;
     transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, color 140ms ease;
 }
 
@@ -229,6 +255,15 @@ button:focus-visible {
     font-size: 1rem;
 }
 
+.note-image {
+    width: 100%;
+    max-height: 280px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    object-fit: contain;
+    background: var(--panel-soft);
+}
+
 .note-footer {
     display: flex;
     align-items: center;
@@ -247,7 +282,7 @@ button:focus-visible {
 
 .note-actions {
     display: flex;
-    gap: 8px;
+    gap: 4px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }
@@ -363,6 +398,15 @@ button:focus-visible {
     line-height: 1.6;
 }
 
+.note-modal-image {
+    width: 100%;
+    max-height: min(48vh, 480px);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    object-fit: contain;
+    background: var(--panel-soft);
+}
+
 .note-modal-actions {
     justify-content: flex-end;
 }
@@ -378,16 +422,12 @@ button:focus-visible {
     flex-direction: column;
     }
 
-    .header-tools,
-    .code-pill,
-    .count,
     .composer-actions,
     .note-footer,
     .primary-button {
     width: 100%;
     }
 
-    .header-tools,
     .composer-actions,
     .note-footer {
     align-items: stretch;
@@ -396,6 +436,14 @@ button:focus-visible {
 
     .composer {
     padding: 12px;
+    }
+
+    .composer-image {
+    grid-template-columns: 1fr;
+    }
+
+    .composer-image button {
+    width: 100%;
     }
 
     .note-actions {
