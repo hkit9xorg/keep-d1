@@ -81,7 +81,7 @@ export async function onRequestGet({ request, env }) {
   }
 
   const { results } = await env.DB
-    .prepare("SELECT id, title, image, code, created_at FROM keeps WHERE code = ? ORDER BY id DESC")
+    .prepare("SELECT id, title, image, code, completed, created_at FROM keeps WHERE code = ? ORDER BY id DESC")
     .bind(code)
     .all();
 
@@ -114,5 +114,5 @@ export async function onRequestPost({ request, env }) {
     .bind(title, image, code)
     .run();
 
-  return Response.json({ id: result.meta.last_row_id, title, image, code });
+  return Response.json({ id: result.meta.last_row_id, title, image, code, completed: 0 });
 }

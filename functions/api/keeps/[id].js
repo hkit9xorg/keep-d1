@@ -79,6 +79,7 @@ export async function onRequestPut({ request, env, params }) {
   const code = normalizeCode(body.code || url.searchParams.get("code"));
   const title = String(body.title ?? "").trim();
   const image = normalizeImage(body.image);
+  const completed = body.completed ? 1 : 0;
 
   if (!Number.isInteger(id) || id <= 0) {
     return jsonError("Invalid note id");
@@ -98,10 +99,10 @@ export async function onRequestPut({ request, env, params }) {
 
   await env.DB
     .prepare("UPDATE keeps SET title = ?, image = ?, completed = ? WHERE id = ? AND code = ?")
-    .bind(title, image, body.completed ? 1 : 0, id, code)
+    .bind(title, image, completed, id, code)
     .run();
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, id, title, image, code, completed });
 }
 
 export async function onRequestDelete({ request, env, params }) {

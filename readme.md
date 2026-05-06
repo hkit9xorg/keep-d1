@@ -2,7 +2,7 @@
 
 Keep D1 là ứng dụng ghi chú đơn giản chạy trên Cloudflare Pages, sử dụng Pages Functions làm API và Cloudflare D1 làm cơ sở dữ liệu SQLite serverless.
 
-Ứng dụng cho phép người dùng nhập một `code` riêng để mở không gian ghi chú tương ứng. Mỗi ghi chú được lưu theo `code`, có thể chứa nội dung text hoặc ảnh paste từ clipboard, và có thể xem danh sách, thêm mới, chỉnh sửa và xóa thông qua giao diện web trong `public/index.html`.
+Ứng dụng cho phép người dùng nhập một `code` riêng để mở không gian ghi chú tương ứng. Mỗi ghi chú được lưu theo `code`, có thể chứa nội dung Markdown hoặc ảnh paste từ clipboard, và có thể xem danh sách, thêm mới, chỉnh sửa và xóa thông qua giao diện web trong `public/index.html`.
 
 ## Công nghệ sử dụng
 

@@ -38,7 +38,8 @@
       </div>
       <p class="composer-error" id="composerError" role="alert" hidden></p>
       <div class="composer-actions">
-        <button class="primary-button" type="submit">Lưu ghi chú</button>
+        <button class="ghost-button" id="cancelEditButton" type="button" hidden>Hủy sửa</button>
+        <button class="primary-button" id="saveButton" type="submit">Lưu ghi chú</button>
       </div>
     </form>
 
@@ -55,8 +56,9 @@
         <button class="ghost-button" id="closeNoteModalButton" type="button">Đóng</button>
       </div>
       <img class="note-modal-image" id="noteModalImage" alt="Ảnh ghi chú" hidden>
-      <p class="note-modal-text" id="noteModalText"></p>
+      <div class="note-modal-text markdown-body" id="noteModalText"></div>
       <div class="note-modal-actions">
+        <button class="ghost-button" id="editModalNoteButton" type="button">Sửa</button>
         <button class="ghost-button" id="copyModalNoteButton" type="button">Copy</button>
         <button class="primary-button" id="closeNoteModalFooterButton" type="button">Đóng</button>
       </div>

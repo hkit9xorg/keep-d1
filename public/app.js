@@ -15,6 +15,8 @@ const imagePreview = document.querySelector("#imagePreview");
 const imagePreviewImg = document.querySelector("#imagePreviewImg");
 const removeImageButton = document.querySelector("#removeImageButton");
 const composerError = document.querySelector("#composerError");
+const saveButton = document.querySelector("#saveButton");
+const cancelEditButton = document.querySelector("#cancelEditButton");
 const list = document.querySelector("#list");
 const count = document.querySelector("#count");
 const codeGate = document.querySelector("#codeGate");
@@ -30,6 +32,7 @@ const noteModalImage = document.querySelector("#noteModalImage");
 const closeNoteModalButton = document.querySelector("#closeNoteModalButton");
 const closeNoteModalFooterButton = document.querySelector("#closeNoteModalFooterButton");
 const copyModalNoteButton = document.querySelector("#copyModalNoteButton");
+const editModalNoteButton = document.querySelector("#editModalNoteButton");
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
     day: "2-digit",
     month: "2-digit",
@@ -39,6 +42,8 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
 });
 let activeCode = "";
 let activeModalNote = "";
+let activeModalKeep = null;
+let editingKeep = null;
 let pendingImage = "";
 let imagePasteTask = null;
 
@@ -294,12 +299,245 @@ function getNotePreview(value) {
     };
 }
 
+const HTML_ESCAPE_LOOKUP = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+};
+
+const INLINE_MARKDOWN_PATTERN = /`([^`\n]+)`|\[([^\]\n]+)\]\(([^)\s]+)\)|\*\*([^*\n]+)\*\*|__([^_\n]+)__|~~([^~\n]+)~~|\*([^*\n]+)\*|_([^_\n]+)_/g;
+
+function escapeHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (char) => HTML_ESCAPE_LOOKUP[char]);
+}
+
+function escapeAttribute(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
+function getSafeMarkdownUrl(value) {
+    const rawUrl = String(value ?? "").trim().replace(/^<|>$/g, "");
+
+    if (!rawUrl) return "";
+    if (rawUrl.startsWith("#")) return rawUrl;
+    if (rawUrl.startsWith("/") && !rawUrl.startsWith("//")) return rawUrl;
+    if (/^\.\.?\//.test(rawUrl)) return rawUrl;
+
+    try {
+    const url = new URL(rawUrl, window.location.origin);
+    if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
+        return url.href;
+    }
+    } catch (error) {
+    return "";
+    }
+
+    return "";
+}
+
+function renderInlineMarkdown(value) {
+    const text = String(value ?? "");
+    const inlinePattern = new RegExp(INLINE_MARKDOWN_PATTERN.source, "g");
+    let html = "";
+    let cursor = 0;
+
+    text.replace(inlinePattern, (...args) => {
+    const match = args[0];
+    const offset = args[args.length - 2];
+    const [
+        code,
+        linkText,
+        linkUrl,
+        strongAsterisk,
+        strongUnderscore,
+        deleted,
+        emphasisAsterisk,
+        emphasisUnderscore
+    ] = args.slice(1, -2);
+
+    html += escapeHtml(text.slice(cursor, offset));
+    cursor = offset + match.length;
+
+    if (code !== undefined) {
+        html += `<code>${escapeHtml(code)}</code>`;
+        return match;
+    }
+
+    if (linkText !== undefined) {
+        const safeUrl = getSafeMarkdownUrl(linkUrl);
+        html += safeUrl
+        ? `<a href="${escapeAttribute(safeUrl)}" target="_blank" rel="noopener noreferrer">${renderInlineMarkdown(linkText)}</a>`
+        : escapeHtml(match);
+        return match;
+    }
+
+    const strongText = strongAsterisk ?? strongUnderscore;
+    if (strongText !== undefined) {
+        html += `<strong>${renderInlineMarkdown(strongText)}</strong>`;
+        return match;
+    }
+
+    if (deleted !== undefined) {
+        html += `<del>${renderInlineMarkdown(deleted)}</del>`;
+        return match;
+    }
+
+    const emphasisText = emphasisAsterisk ?? emphasisUnderscore;
+    if (emphasisText !== undefined) {
+        html += `<em>${renderInlineMarkdown(emphasisText)}</em>`;
+        return match;
+    }
+
+    html += escapeHtml(match);
+    return match;
+    });
+
+    html += escapeHtml(text.slice(cursor));
+    return html;
+}
+
+function renderInlineMarkdownWithBreaks(value) {
+    return renderInlineMarkdown(value).replace(/\n/g, "<br>");
+}
+
+function isMarkdownBlockStart(line) {
+    return /^ {0,3}```/.test(line)
+    || /^ {0,3}#{1,6}\s+/.test(line)
+    || /^ {0,3}(?:[-*_]\s*){3,}$/.test(line)
+    || /^ {0,3}>\s?/.test(line)
+    || /^ {0,3}(?:[-*+]|\d+[.)])\s+/.test(line);
+}
+
+function renderListItemMarkdown(value) {
+    const taskMatch = String(value ?? "").match(/^\[( |x|X)\]\s+([\s\S]*)$/);
+
+    if (taskMatch) {
+    const checked = taskMatch[1].toLowerCase() === "x" ? " checked" : "";
+    return `<li class="task-list-item"><input type="checkbox" disabled${checked}>${renderInlineMarkdownWithBreaks(taskMatch[2])}</li>`;
+    }
+
+    return `<li>${renderInlineMarkdownWithBreaks(value)}</li>`;
+}
+
+function renderMarkdown(value) {
+    const source = String(value ?? "").replace(/\r\n?/g, "\n").trimEnd();
+
+    if (!source.trim()) return "";
+
+    const lines = source.split("\n");
+    const html = [];
+    let index = 0;
+
+    while (index < lines.length) {
+    const line = lines[index];
+
+    if (!line.trim()) {
+        index += 1;
+        continue;
+    }
+
+    const fence = line.match(/^ {0,3}```\s*([\w-]+)?\s*$/);
+    if (fence) {
+        const codeLines = [];
+        index += 1;
+
+        while (index < lines.length && !/^ {0,3}```\s*$/.test(lines[index])) {
+        codeLines.push(lines[index]);
+        index += 1;
+        }
+
+        if (index < lines.length) index += 1;
+
+        const language = fence[1] ? ` class="language-${escapeAttribute(fence[1])}"` : "";
+        html.push(`<pre><code${language}>${escapeHtml(codeLines.join("\n"))}</code></pre>`);
+        continue;
+    }
+
+    const heading = line.match(/^ {0,3}(#{1,6})\s+(.+?)\s*#*\s*$/);
+    if (heading) {
+        const level = heading[1].length;
+        html.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+        index += 1;
+        continue;
+    }
+
+    if (/^ {0,3}(?:[-*_]\s*){3,}$/.test(line)) {
+        html.push("<hr>");
+        index += 1;
+        continue;
+    }
+
+    if (/^ {0,3}>\s?/.test(line)) {
+        const quoteLines = [];
+
+        while (index < lines.length) {
+        const quote = lines[index].match(/^ {0,3}>\s?(.*)$/);
+        if (!quote) break;
+        quoteLines.push(quote[1]);
+        index += 1;
+        }
+
+        html.push(`<blockquote>${renderMarkdown(quoteLines.join("\n"))}</blockquote>`);
+        continue;
+    }
+
+    const unordered = line.match(/^ {0,3}[-*+]\s+(.+)$/);
+    const ordered = line.match(/^ {0,3}\d+[.)]\s+(.+)$/);
+    if (unordered || ordered) {
+        const isOrdered = Boolean(ordered);
+        const itemPattern = isOrdered ? /^ {0,3}\d+[.)]\s+(.+)$/ : /^ {0,3}[-*+]\s+(.+)$/;
+        const items = [];
+
+        while (index < lines.length) {
+        const item = lines[index].match(itemPattern);
+        if (!item) break;
+        let itemText = item[1];
+        index += 1;
+
+        while (index < lines.length && /^ {2,}\S/.test(lines[index]) && !isMarkdownBlockStart(lines[index])) {
+            itemText += `\n${lines[index].trim()}`;
+            index += 1;
+        }
+
+        items.push(renderListItemMarkdown(itemText));
+        }
+
+        html.push(`<${isOrdered ? "ol" : "ul"}>${items.join("")}</${isOrdered ? "ol" : "ul"}>`);
+        continue;
+    }
+
+    const paragraphLines = [];
+    while (index < lines.length && lines[index].trim() && !isMarkdownBlockStart(lines[index])) {
+        paragraphLines.push(lines[index]);
+        index += 1;
+    }
+
+    if (paragraphLines.length) {
+        html.push(`<p>${renderInlineMarkdownWithBreaks(paragraphLines.join("\n"))}</p>`);
+        continue;
+    }
+
+    html.push(`<p>${renderInlineMarkdownWithBreaks(line)}</p>`);
+    index += 1;
+    }
+
+    return html.join("");
+}
+
+function renderMarkdownInto(element, value) {
+    const html = renderMarkdown(value);
+    element.innerHTML = html;
+    element.hidden = !html;
+}
+
 function openNoteModal(keep) {
     const dateText = formatDate(keep.created_at);
     const image = String(keep.image ?? "");
     activeModalNote = String(keep.title ?? "");
-    noteModalText.textContent = activeModalNote;
-    noteModalText.hidden = !activeModalNote;
+    activeModalKeep = keep;
+    renderMarkdownInto(noteModalText, activeModalNote);
     copyModalNoteButton.hidden = !activeModalNote;
     noteModalDate.textContent = dateText;
     noteModalDate.hidden = !dateText;
@@ -346,6 +584,45 @@ function hideCodeGate() {
     app.hidden = false;
 }
 
+function resetComposer(options = {}) {
+    editingKeep = null;
+    imagePasteTask = null;
+    titleInput.value = "";
+    setPendingImage("");
+    clearComposerError();
+    resizeTextarea(titleInput);
+    form.classList.remove("is-editing");
+    saveButton.textContent = "Lưu ghi chú";
+    cancelEditButton.hidden = true;
+
+    if (options.focus !== false) {
+    titleInput.focus();
+    }
+}
+
+function startEditKeep(keep) {
+    editingKeep = {
+    id: keep.id,
+    completed: keep.completed ? 1 : 0
+    };
+    imagePasteTask = null;
+    titleInput.value = String(keep.title ?? "");
+    setPendingImage(String(keep.image ?? ""));
+    clearComposerError();
+    resizeTextarea(titleInput);
+    form.classList.add("is-editing");
+    saveButton.textContent = "Cập nhật";
+    cancelEditButton.hidden = false;
+    closeNoteModal();
+    form.scrollIntoView({ block: "start", behavior: "smooth" });
+
+    requestAnimationFrame(() => {
+    titleInput.focus();
+    titleInput.selectionStart = titleInput.value.length;
+    titleInput.selectionEnd = titleInput.value.length;
+    });
+}
+
 function setActiveCode(code, options = {}) {
     const nextCode = normalizeCode(code);
 
@@ -357,6 +634,11 @@ function setActiveCode(code, options = {}) {
 
     const changed = nextCode !== activeCode;
     activeCode = nextCode;
+
+    if (changed) {
+    resetComposer({ focus: false });
+    }
+
     currentCode.textContent = activeCode;
     currentCode.parentElement.title = `Code hiện tại: ${activeCode}`;
     saveCodeCookie(activeCode);
@@ -412,9 +694,9 @@ function renderNote(keep) {
     }
 
     if (hasText) {
-    const text = document.createElement("p");
-    text.className = "note-text";
-    text.textContent = preview.text;
+    const text = document.createElement("div");
+    text.className = "note-text markdown-body";
+    text.innerHTML = renderMarkdown(preview.text);
     card.append(text);
     }
 
@@ -436,6 +718,13 @@ function renderNote(keep) {
     moreButton.addEventListener("click", () => openNoteModal(keep));
     actions.append(moreButton);
     }
+
+    const editButton = document.createElement("button");
+    editButton.className = "ghost-button";
+    editButton.type = "button";
+    editButton.textContent = "Sửa";
+    editButton.addEventListener("click", () => startEditKeep(keep));
+    actions.append(editButton);
 
     if (hasText) {
     const copyButton = document.createElement("button");
@@ -481,22 +770,24 @@ form.addEventListener("submit", async (event) => {
     return;
     }
 
-    const res = await fetch(notesUrl(), {
-    method: "POST",
+    const requestPath = editingKeep ? `/${editingKeep.id}` : "";
+    const res = await fetch(notesUrl(requestPath), {
+    method: editingKeep ? "PUT" : "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ title, image: pendingImage, code: activeCode })
+    body: JSON.stringify({
+        title,
+        image: pendingImage,
+        code: activeCode,
+        completed: editingKeep?.completed ?? 0
+    })
     });
 
     if (!res.ok) {
-    renderEmpty("Không thể lưu ghi chú. Vui lòng thử lại.", "error");
+    setComposerError(editingKeep ? "Không thể cập nhật ghi chú. Vui lòng thử lại." : "Không thể lưu ghi chú. Vui lòng thử lại.");
     return;
     }
 
-    titleInput.value = "";
-    setPendingImage("");
-    clearComposerError();
-    resizeTextarea(titleInput);
-    titleInput.focus();
+    resetComposer();
     loadKeeps();
 });
 
@@ -509,6 +800,7 @@ changeCodeButton.addEventListener("click", showCodeGate);
 copyLinkButton.addEventListener("click", () => copyText(window.location.href, copyLinkButton, "Đã copy"));
 titleInput.addEventListener("input", () => resizeTextarea(titleInput));
 titleInput.addEventListener("paste", handleTitlePaste);
+cancelEditButton.addEventListener("click", () => resetComposer());
 removeImageButton.addEventListener("click", () => {
     imagePasteTask = null;
     setPendingImage("");
@@ -518,6 +810,9 @@ removeImageButton.addEventListener("click", () => {
 closeNoteModalButton.addEventListener("click", closeNoteModal);
 closeNoteModalFooterButton.addEventListener("click", closeNoteModal);
 copyModalNoteButton.addEventListener("click", () => copyText(activeModalNote, copyModalNoteButton, "Đã copy"));
+editModalNoteButton.addEventListener("click", () => {
+    if (activeModalKeep) startEditKeep(activeModalKeep);
+});
 noteModal.addEventListener("click", (event) => {
     if (event.target === noteModal) closeNoteModal();
 });
@@ -555,6 +850,10 @@ async function deleteKeep(id) {
     await fetch(notesUrl(`/${id}`), {
     method: "DELETE"
     });
+
+    if (editingKeep?.id === id) {
+    resetComposer({ focus: false });
+    }
 
     loadKeeps();
 }
