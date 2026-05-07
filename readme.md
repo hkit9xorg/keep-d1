@@ -2,7 +2,7 @@
 
 Keep D1 là ứng dụng ghi chú đơn giản chạy trên Cloudflare Pages, sử dụng Pages Functions làm API và Cloudflare D1 làm cơ sở dữ liệu SQLite serverless.
 
-Ứng dụng cho phép người dùng nhập một `code` riêng để mở không gian ghi chú tương ứng. Mỗi ghi chú được lưu theo `code`, có thể chứa nội dung Markdown hoặc ảnh paste từ clipboard, và có thể xem danh sách, thêm mới, chỉnh sửa và xóa thông qua giao diện web trong `public/index.html`.
+Ứng dụng cho phép người dùng nhập một `code` riêng để mở không gian ghi chú tương ứng. Mỗi ghi chú được lưu theo `code`, có thể chứa nội dung Markdown hoặc ảnh paste từ clipboard, và có thể xem danh sách, thêm mới, chỉnh sửa, xóa thông qua giao diện web trong `public/index.html`.
 
 ## Công nghệ sử dụng
 
@@ -20,7 +20,7 @@ Keep D1 là ứng dụng ghi chú đơn giản chạy trên Cloudflare Pages, s�
 ├── public/index.html            # Giao diện chính của ứng dụng
 ├── schema.sql                   # Schema cho bảng keeps
 ├── wrangler.toml                # Cấu hình Cloudflare Pages và D1
-├── package.json                 # Thông tin package và dependency Wrangler
+├── package.json                 # Scripts và dependency Wrangler
 └── readme.md
 ```
 
@@ -31,8 +31,6 @@ Keep D1 là ứng dụng ghi chú đơn giản chạy trên Cloudflare Pages, s�
 - Tài khoản Cloudflare nếu muốn triển khai lên Cloudflare Pages/D1.
 
 ## Cài đặt
-
-Cài dependency của dự án:
 
 ```bash
 npm install
@@ -48,12 +46,10 @@ npx wrangler d1 execute keep_db --local --file=./schema.sql
 
 Trong code, API cũng có hàm tự đảm bảo schema khi có request. Tuy vậy, chạy lệnh trên giúp database local sẵn sàng trước khi mở ứng dụng.
 
-## Chạy dự án ở local
-
-Chạy Cloudflare Pages dev server và bind D1 vào biến `DB`:
+## Chạy local
 
 ```bash
-npx wrangler pages dev public --d1 DB
+npm run dev
 ```
 
 Sau khi server khởi động, mở địa chỉ local mà Wrangler hiển thị, thường là:
@@ -65,8 +61,6 @@ http://localhost:8788
 Nhập một `code` bất kỳ, ví dụ `ca-nhan`, để tạo không gian ghi chú. Có thể chia sẻ link có query `?code=ca-nhan` để mở lại cùng nhóm ghi chú.
 
 ## API
-
-Các API chính:
 
 - `GET /api/keeps?code=<code>`: lấy danh sách ghi chú theo code.
 - `POST /api/keeps`: tạo ghi chú mới. Body JSON gồm `title`, `image` và `code`.
@@ -83,7 +77,24 @@ curl -X POST http://localhost:8788/api/keeps \
 
 ## Triển khai
 
-Trước khi triển khai, kiểm tra lại cấu hình D1 trong `wrangler.toml`:
+Project này là Cloudflare Pages, không phải Cloudflare Workers thuần. Vì vậy không dùng lệnh `wrangler deploy`, vì lệnh đó yêu cầu `main = "src/index.ts"` hoặc `[assets]` và sẽ gây lỗi deploy như log Cloudflare đã báo.
+
+Triển khai bằng Wrangler:
+
+```bash
+npm run deploy
+```
+
+Nếu deploy bằng Cloudflare Pages qua Git, cấu hình trong dashboard:
+
+```text
+Framework preset: None
+Build command: npm run build
+Build output directory: public
+Root directory: /
+```
+
+Kiểm tra lại D1 binding trong `wrangler.toml` trước khi deploy:
 
 ```toml
 [[d1_databases]]
@@ -93,9 +104,3 @@ database_id = "..."
 ```
 
 Nếu dùng database Cloudflare D1 khác, cập nhật `database_name` và `database_id` tương ứng.
-
-Sau đó có thể triển khai bằng Wrangler:
-
-```bash
-npx wrangler pages deploy public
-```

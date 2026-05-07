@@ -4,6 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "echo \"No build step required; static assets are in public\"",
+    "dev": "wrangler pages dev public --d1 DB",
+    "deploy": "wrangler pages deploy public --project-name keep-d1",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
