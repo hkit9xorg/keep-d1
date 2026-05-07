@@ -1,16 +1,23 @@
 <!doctype html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Keep D1</title>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div class="code-gate" id="codeGate" hidden>
     <form class="code-card" id="codeForm">
       <h2>Nhập code</h2>
-      <input class="code-input" id="codeInput" autocomplete="off" spellcheck="false" placeholder="vd: ca-nhan" />
+      <p>
+        Mỗi mã sẽ chứa một danh sách ghi chú riêng.
+        Nhập đúng mã để xem hoặc quản lý các ghi chú tương ứng.
+        Mã nên dài ít nhất 6 ký tự.
+      </p>
+      <input class="code-input" id="codeInput" autocomplete="off" spellcheck="false" placeholder="mysecret123" />
       <div class="code-card-actions">
         <button class="primary-button" type="submit">Mở ghi chú</button>
       </div>
@@ -18,13 +25,25 @@
   </div>
 
   <main class="app" id="app" hidden>
-    <header>
-      <div>
-        <h1 class="subtitle">Ghi lại nhanh mọi ý tưởng cần nhớ.</h1>
-      </div>
+    <header class="top-header">
       <div class="header-tools">
-        <div class="code-pill" title="Code hiện tại">Code: <strong id="currentCode"></strong></div>
+        <div class="code-pill" title="Code hiện tại">
+          <strong id="currentCode"></strong>
+        </div>
         <div class="count" id="count">0 ghi chú</div>
+      </div>
+
+      <div class="search-wrap">
+        <input class="search-input" id="searchInput" type="search" placeholder="Tìm ghi chú..." autocomplete="off" />
+      </div>
+
+      <div class="composer-actions">
+        <button class="ghost-button" id="cancelEditButton" type="button" hidden form="form">
+          Hủy sửa
+        </button>
+        <button class="primary-button" id="saveButton" type="submit" form="form">
+          Lưu ghi chú
+        </button>
       </div>
     </header>
 
@@ -35,16 +54,7 @@
         <button class="ghost-button" id="removeImageButton" type="button">Gỡ ảnh</button>
       </div>
       <p class="composer-error" id="composerError" role="alert" hidden></p>
-      <div class="composer-actions">
-        <button class="ghost-button" id="cancelEditButton" type="button" hidden>Hủy sửa</button>
-        <button class="primary-button" id="saveButton" type="submit">Lưu ghi chú</button>
-      </div>
     </form>
-
-    <div class="search-wrap">
-      <input class="search-input" id="searchInput" type="search" placeholder="Tìm ghi chú..." autocomplete="off" />
-    </div>
-
     <section class="notes" id="list" aria-live="polite"></section>
   </main>
 
@@ -70,4 +80,5 @@
   <script src="app.js">
   </script>
 </body>
+
 </html>
