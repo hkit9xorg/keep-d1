@@ -24,8 +24,6 @@
       </div>
       <div class="header-tools">
         <div class="code-pill" title="Code hiện tại">Code: <strong id="currentCode"></strong></div>
-        <button class="ghost-button" id="changeCodeButton" type="button">Đổi code</button>
-        <button class="ghost-button" id="copyLinkButton" type="button">Copy link</button>
         <div class="count" id="count">0 ghi chú</div>
       </div>
     </header>
@@ -42,6 +40,10 @@
         <button class="primary-button" id="saveButton" type="submit">Lưu ghi chú</button>
       </div>
     </form>
+
+    <div class="search-wrap">
+      <input class="search-input" id="searchInput" type="search" placeholder="Tìm ghi chú..." autocomplete="off" />
+    </div>
 
     <section class="notes" id="list" aria-live="polite"></section>
   </main>

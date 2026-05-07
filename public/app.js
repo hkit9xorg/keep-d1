@@ -19,12 +19,12 @@ const saveButton = document.querySelector("#saveButton");
 const cancelEditButton = document.querySelector("#cancelEditButton");
 const list = document.querySelector("#list");
 const count = document.querySelector("#count");
+const searchInput = document.querySelector("#searchInput");
 const codeGate = document.querySelector("#codeGate");
 const codeForm = document.querySelector("#codeForm");
 const codeInput = document.querySelector("#codeInput");
 const currentCode = document.querySelector("#currentCode");
-const changeCodeButton = document.querySelector("#changeCodeButton");
-const copyLinkButton = document.querySelector("#copyLinkButton");
+const codePill = document.querySelector(".code-pill");
 const noteModal = document.querySelector("#noteModal");
 const noteModalDate = document.querySelector("#noteModalDate");
 const noteModalText = document.querySelector("#noteModalText");
@@ -44,8 +44,11 @@ let activeCode = "";
 let activeModalNote = "";
 let activeModalKeep = null;
 let editingKeep = null;
+let keepsCache = [];
 let pendingImage = "";
 let imagePasteTask = null;
+let searchDebounce = null;
+let undoDeleteTask = null;
 
 function normalizeCode(value) {
     return String(value ?? "").trim();
@@ -256,6 +259,10 @@ function notesUrl(path = "") {
 
 function updateCount(total) {
     count.textContent = `${total} ghi chú`;
+}
+
+function normalizeSearchValue(value) {
+    return String(value ?? "").trim().toLowerCase();
 }
 
 function renderEmpty(message, className = "empty") {
@@ -651,6 +658,46 @@ function setActiveCode(code, options = {}) {
     loadKeeps();
 }
 
+function getFilteredKeeps() {
+    const query = normalizeSearchValue(searchInput.value);
+    if (!query) return keepsCache;
+    return keepsCache.filter((keep) => String(keep.title ?? "").toLowerCase().includes(query));
+}
+
+function renderKeeps() {
+    const filteredKeeps = getFilteredKeeps();
+    updateCount(filteredKeeps.length);
+    list.replaceChildren();
+
+    if (!filteredKeeps.length) {
+    renderEmpty(keepsCache.length ? "Không tìm thấy ghi chú phù hợp." : "Chưa có ghi chú nào cho code này.");
+    return;
+    }
+
+    filteredKeeps.forEach(renderNote);
+}
+
+function showUndoDelete(keep) {
+    if (undoDeleteTask) undoDeleteTask.remove();
+    const toast = document.createElement("div");
+    toast.className = "undo-toast";
+    toast.innerHTML = `<span>Đã xóa ghi chú.</span><button type="button" class="ghost-button">Hoàn tác</button>`;
+    document.body.append(toast);
+    const undoButton = toast.querySelector("button");
+    const timer = setTimeout(() => toast.remove(), 5000);
+    undoButton.addEventListener("click", async () => {
+    clearTimeout(timer);
+    toast.remove();
+    await fetch(notesUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: keep.title, image: keep.image, code: activeCode })
+    });
+    loadKeeps();
+    });
+    undoDeleteTask = toast;
+}
+
 async function loadKeeps() {
     if (!activeCode) {
     showCodeGate();
@@ -662,16 +709,10 @@ async function loadKeeps() {
     if (!res.ok) throw new Error("Không tải được dữ liệu");
 
     const keeps = await res.json();
-    updateCount(keeps.length);
-    list.replaceChildren();
-
-    if (!keeps.length) {
-        renderEmpty("Chưa có ghi chú nào cho code này.");
-        return;
-    }
-
-    keeps.forEach(renderNote);
+    keepsCache = keeps;
+    renderKeeps();
     } catch (error) {
+    keepsCache = [];
     updateCount(0);
     renderEmpty("Không thể tải ghi chú. Vui lòng thử lại.", "error");
     }
@@ -712,34 +753,42 @@ function renderNote(keep) {
 
     if (preview.isTruncated || image) {
     const moreButton = document.createElement("button");
-    moreButton.className = "ghost-button";
+    moreButton.className = "icon-button";
     moreButton.type = "button";
-    moreButton.textContent = preview.isTruncated ? "Xem thêm" : "Xem";
+    moreButton.innerHTML = "👁";
+    moreButton.title = "Xem chi tiết";
+    moreButton.setAttribute("aria-label", "Xem chi tiết");
     moreButton.addEventListener("click", () => openNoteModal(keep));
     actions.append(moreButton);
     }
 
     const editButton = document.createElement("button");
-    editButton.className = "ghost-button";
+    editButton.className = "icon-button";
     editButton.type = "button";
-    editButton.textContent = "Sửa";
+    editButton.innerHTML = "✏️";
+    editButton.title = "Sửa";
+    editButton.setAttribute("aria-label", "Sửa");
     editButton.addEventListener("click", () => startEditKeep(keep));
     actions.append(editButton);
 
     if (hasText) {
     const copyButton = document.createElement("button");
-    copyButton.className = "ghost-button";
+    copyButton.className = "icon-button";
     copyButton.type = "button";
-    copyButton.textContent = "Copy";
+    copyButton.innerHTML = "📋";
+    copyButton.title = "Copy";
+    copyButton.setAttribute("aria-label", "Copy");
     copyButton.addEventListener("click", () => copyText(keep.title, copyButton, "Đã copy"));
     actions.append(copyButton);
     }
 
     const deleteButton = document.createElement("button");
-    deleteButton.className = "danger-button";
+    deleteButton.className = "icon-button danger-button";
     deleteButton.type = "button";
-    deleteButton.textContent = "Xóa";
-    deleteButton.addEventListener("click", () => deleteKeep(keep.id));
+    deleteButton.innerHTML = "🗑";
+    deleteButton.title = "Xóa";
+    deleteButton.setAttribute("aria-label", "Xóa");
+    deleteButton.addEventListener("click", () => deleteKeep(keep));
 
     actions.append(deleteButton);
     footer.append(date, actions);
@@ -796,9 +845,11 @@ codeForm.addEventListener("submit", (event) => {
     setActiveCode(codeInput.value, { pushUrl: Boolean(activeCode) });
 });
 
-changeCodeButton.addEventListener("click", showCodeGate);
-copyLinkButton.addEventListener("click", () => copyText(window.location.href, copyLinkButton, "Đã copy"));
 titleInput.addEventListener("input", () => resizeTextarea(titleInput));
+searchInput.addEventListener("input", () => {
+    if (searchDebounce) clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(renderKeeps, 280);
+});
 titleInput.addEventListener("paste", handleTitlePaste);
 cancelEditButton.addEventListener("click", () => resetComposer());
 removeImageButton.addEventListener("click", () => {
@@ -807,6 +858,7 @@ removeImageButton.addEventListener("click", () => {
     clearComposerError();
     titleInput.focus();
 });
+codePill.addEventListener("click", showCodeGate);
 closeNoteModalButton.addEventListener("click", closeNoteModal);
 closeNoteModalFooterButton.addEventListener("click", closeNoteModal);
 copyModalNoteButton.addEventListener("click", () => copyText(activeModalNote, copyModalNoteButton, "Đã copy"));
@@ -846,15 +898,16 @@ async function copyText(text, button, successText) {
     }, 1400);
 }
 
-async function deleteKeep(id) {
-    await fetch(notesUrl(`/${id}`), {
+async function deleteKeep(keep) {
+    await fetch(notesUrl(`/${keep.id}`), {
     method: "DELETE"
     });
 
-    if (editingKeep?.id === id) {
+    if (editingKeep?.id === keep.id) {
     resetComposer({ focus: false });
     }
 
+    showUndoDelete(keep);
     loadKeeps();
 }
 
