@@ -116,3 +116,41 @@ export async function onRequestPost({ request, env }) {
 
   return Response.json({ id: result.meta.last_row_id, title, image, code, completed: 0 });
 }
+
+export async function onRequestPatch({ request, env }) {
+  await ensureSchema(env);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return jsonError("Invalid JSON body");
+  }
+
+  const oldCode = normalizeCode(body.oldCode || body.fromCode || body.code);
+  const newCode = normalizeCode(body.newCode || body.toCode);
+
+  if (!oldCode) {
+    return jsonError("Code hiện tại không hợp lệ");
+  }
+
+  if (!newCode) {
+    return jsonError("Code mới không hợp lệ");
+  }
+
+  if (oldCode === newCode) {
+    return jsonError("Code mới phải khác code hiện tại");
+  }
+
+  const result = await env.DB
+    .prepare("UPDATE keeps SET code = ? WHERE code = ?")
+    .bind(newCode, oldCode)
+    .run();
+
+  return Response.json({
+    ok: true,
+    oldCode,
+    newCode,
+    updatedCount: result.meta?.changes ?? 0
+  });
+}

@@ -15,6 +15,7 @@ Keep D1 là ứng dụng ghi chú đơn giản chạy trên Cloudflare Pages, s�
 
 ```text
 .
+├── functions/api/code.js        # API đổi tất cả ghi chú sang code mới
 ├── functions/api/keeps.js       # API lấy danh sách và tạo ghi chú
 ├── functions/api/keeps/[id].js  # API cập nhật và xóa ghi chú
 ├── public/index.html            # Giao diện chính của ứng dụng
@@ -66,6 +67,7 @@ Nhập một `code` bất kỳ, ví dụ `ca-nhan`, để tạo không gian ghi 
 - `POST /api/keeps`: tạo ghi chú mới. Body JSON gồm `title`, `image` và `code`.
 - `PUT /api/keeps/:id`: cập nhật ghi chú. Body JSON gồm `title`, `image`, `completed` và `code`.
 - `DELETE /api/keeps/:id?code=<code>`: xóa ghi chú theo id và code.
+- `POST /api/code`: đổi tất cả ghi chú sang code mới. Body JSON gồm `oldCode` và `newCode`.
 
 Ví dụ tạo ghi chú:
 

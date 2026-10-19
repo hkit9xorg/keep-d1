@@ -23,8 +23,19 @@ const searchInput = document.querySelector("#searchInput");
 const codeGate = document.querySelector("#codeGate");
 const codeForm = document.querySelector("#codeForm");
 const codeInput = document.querySelector("#codeInput");
+const codeGateTitle = document.querySelector("#codeGateTitle");
+const codeGateDesc = document.querySelector("#codeGateDesc");
+const closeCodeGateButton = document.querySelector("#closeCodeGateButton");
+const currentCodeBadge = document.querySelector("#currentCodeBadge");
+const codeGateCurrentCode = document.querySelector("#codeGateCurrentCode");
+const codeGateError = document.querySelector("#codeGateError");
+const cancelCodeGateButton = document.querySelector("#cancelCodeGateButton");
+const switchCodeButton = document.querySelector("#switchCodeButton");
+const renameCodeButton = document.querySelector("#renameCodeButton");
+const submitCodeButton = document.querySelector("#submitCodeButton");
+const renameCodeHeaderButton = document.querySelector("#renameCodeHeaderButton");
 const currentCode = document.querySelector("#currentCode");
-const codePill = document.querySelector(".code-pill");
+const codePill = document.querySelector("#codePill") || document.querySelector(".code-pill");
 const noteModal = document.querySelector("#noteModal");
 const noteModalDate = document.querySelector("#noteModalDate");
 const noteModalText = document.querySelector("#noteModalText");
@@ -49,6 +60,9 @@ let pendingImage = "";
 let imagePasteTask = null;
 let searchDebounce = null;
 let undoDeleteTask = null;
+let activeToastElement = null;
+let activeToastTimer = null;
+let codeModalMode = "switch";
 
 function normalizeCode(value) {
     return String(value ?? "").trim();
@@ -575,20 +589,214 @@ function closeNoteModal() {
     noteModal.removeAttribute("open");
 }
 
-function showCodeGate() {
-    codeInput.value = activeCode;
-    codeGate.hidden = false;
-    if (!activeCode) app.hidden = true;
+function setCodeGateError(message) {
+    if (!codeGateError) return;
+    codeGateError.textContent = message;
+    codeGateError.hidden = !message;
+}
+
+function clearCodeGateError() {
+    setCodeGateError("");
+}
+
+function showToast(message, duration = 3500) {
+    if (activeToastElement) {
+        activeToastElement.remove();
+        activeToastElement = null;
+    }
+    if (activeToastTimer) {
+        clearTimeout(activeToastTimer);
+        activeToastTimer = null;
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "undo-toast";
+    toast.innerHTML = `<span>${escapeHtml(message)}</span>`;
+    document.body.append(toast);
+    activeToastElement = toast;
+
+    activeToastTimer = setTimeout(() => {
+        if (activeToastElement === toast) {
+            toast.remove();
+            activeToastElement = null;
+        }
+    }, duration);
+}
+
+function openCodeModal(mode = "switch") {
+    codeModalMode = mode;
+    clearCodeGateError();
+
+    if (!activeCode || mode === "initial") {
+        codeModalMode = "initial";
+        if (codeGateTitle) codeGateTitle.textContent = "Nhập code";
+        if (codeGateDesc) {
+            codeGateDesc.textContent =
+                "Mỗi mã sẽ chứa một danh sách ghi chú riêng. Nhập đúng mã để xem hoặc quản lý các ghi chú tương ứng. Mã nên dài ít nhất 6 ký tự.";
+        }
+        if (currentCodeBadge) currentCodeBadge.hidden = true;
+        if (closeCodeGateButton) closeCodeGateButton.hidden = true;
+        if (cancelCodeGateButton) cancelCodeGateButton.hidden = true;
+        if (switchCodeButton) switchCodeButton.hidden = true;
+        if (renameCodeButton) renameCodeButton.hidden = true;
+        if (submitCodeButton) {
+            submitCodeButton.hidden = false;
+            submitCodeButton.textContent = "Mở ghi chú";
+        }
+        codeInput.placeholder = "mysecret123";
+        codeInput.value = "";
+        codeGate.hidden = false;
+        app.hidden = true;
+    } else if (mode === "rename") {
+        if (codeGateTitle) codeGateTitle.textContent = "Đổi code";
+        if (codeGateDesc) {
+            codeGateDesc.textContent =
+                "Tất cả ghi chú của code hiện tại sẽ được chuyển sang code mới. Vui lòng nhập code mới bên dưới.";
+        }
+        if (currentCodeBadge) {
+            currentCodeBadge.hidden = false;
+            if (codeGateCurrentCode) codeGateCurrentCode.textContent = activeCode;
+        }
+        if (closeCodeGateButton) closeCodeGateButton.hidden = false;
+        if (cancelCodeGateButton) cancelCodeGateButton.hidden = false;
+        if (switchCodeButton) {
+            switchCodeButton.hidden = false;
+            switchCodeButton.className = "ghost-button";
+            switchCodeButton.textContent = "Chuyển code";
+        }
+        if (renameCodeButton) {
+            renameCodeButton.hidden = false;
+            renameCodeButton.className = "primary-button";
+            renameCodeButton.textContent = "Đổi code";
+        }
+        if (submitCodeButton) submitCodeButton.hidden = true;
+        codeInput.placeholder = "Nhập code mới...";
+        codeInput.value = "";
+        codeGate.hidden = false;
+    } else {
+        codeModalMode = "switch";
+        if (codeGateTitle) codeGateTitle.textContent = "Chuyển sang code khác";
+        if (codeGateDesc) {
+            codeGateDesc.textContent =
+                "Nhập mã code khác để chuyển sang danh sách ghi chú của code đó. Hoặc chọn Đổi code để đổi tất cả ghi chú hiện tại sang code mới.";
+        }
+        if (currentCodeBadge) {
+            currentCodeBadge.hidden = false;
+            if (codeGateCurrentCode) codeGateCurrentCode.textContent = activeCode;
+        }
+        if (closeCodeGateButton) closeCodeGateButton.hidden = false;
+        if (cancelCodeGateButton) cancelCodeGateButton.hidden = false;
+        if (switchCodeButton) {
+            switchCodeButton.hidden = false;
+            switchCodeButton.className = "primary-button";
+            switchCodeButton.textContent = "Chuyển code";
+        }
+        if (renameCodeButton) {
+            renameCodeButton.hidden = false;
+            renameCodeButton.className = "ghost-button";
+            renameCodeButton.textContent = "Đổi code";
+        }
+        if (submitCodeButton) submitCodeButton.hidden = true;
+        codeInput.placeholder = "Nhập code muốn chuyển...";
+        codeInput.value = "";
+        codeGate.hidden = false;
+    }
 
     requestAnimationFrame(() => {
-    codeInput.focus();
-    codeInput.select();
+        codeInput.focus();
     });
 }
 
+function showCodeGate(mode = "switch") {
+    openCodeModal(mode);
+}
+
 function hideCodeGate() {
+    clearCodeGateError();
     codeGate.hidden = true;
-    app.hidden = false;
+    if (activeCode) {
+        app.hidden = false;
+    }
+}
+
+function handleSwitchCode() {
+    clearCodeGateError();
+    const nextCode = normalizeCode(codeInput.value);
+
+    if (!nextCode) {
+        setCodeGateError("Vui lòng nhập mã code muốn chuyển.");
+        codeInput.focus();
+        return;
+    }
+
+    if (nextCode === activeCode) {
+        hideCodeGate();
+        showToast(`Đang ở code "${nextCode}".`);
+        return;
+    }
+
+    hideCodeGate();
+    setActiveCode(nextCode, { pushUrl: true });
+    showToast(`Đã chuyển sang code: ${nextCode}`);
+}
+
+async function handleRenameCode() {
+    clearCodeGateError();
+    const nextCode = normalizeCode(codeInput.value);
+
+    if (!nextCode) {
+        setCodeGateError("Vui lòng nhập code mới.");
+        codeInput.focus();
+        return;
+    }
+
+    if (nextCode === activeCode) {
+        setCodeGateError("Code mới phải khác code hiện tại.");
+        codeInput.focus();
+        return;
+    }
+
+    const totalNotes = keepsCache.length;
+    const confirmMessage = totalNotes > 0
+        ? `Bạn có chắc muốn đổi tất cả (${totalNotes} ghi chú) từ code "${activeCode}" sang code "${nextCode}"?`
+        : `Bạn có chắc muốn đổi code hiện tại từ "${activeCode}" sang code "${nextCode}"?`;
+
+    if (!window.confirm(confirmMessage)) {
+        return;
+    }
+
+    const previousBtnText = renameCodeButton.textContent;
+    renameCodeButton.disabled = true;
+    renameCodeButton.textContent = "Đang đổi code...";
+
+    try {
+        const res = await fetch("/api/code", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                oldCode: activeCode,
+                newCode: nextCode
+            })
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.error || "Không thể đổi code. Vui lòng thử lại.");
+        }
+
+        const data = await res.json();
+        const updatedCount = data.updatedCount ?? totalNotes;
+
+        hideCodeGate();
+        setActiveCode(nextCode, { pushUrl: true });
+        showToast(`Đã đổi tất cả ghi chú sang code mới: ${nextCode} (${updatedCount} ghi chú).`);
+    } catch (error) {
+        setCodeGateError(error.message || "Không thể đổi code. Vui lòng thử lại.");
+        codeInput.focus();
+    } finally {
+        renameCodeButton.disabled = false;
+        renameCodeButton.textContent = previousBtnText;
+    }
 }
 
 function resetComposer(options = {}) {
@@ -635,7 +843,7 @@ function setActiveCode(code, options = {}) {
 
     if (!nextCode) {
     activeCode = "";
-    showCodeGate();
+    openCodeModal("initial");
     return;
     }
 
@@ -647,7 +855,7 @@ function setActiveCode(code, options = {}) {
     }
 
     currentCode.textContent = activeCode;
-    currentCode.parentElement.title = `Code hiện tại: ${activeCode}`;
+    codePill.title = `Code hiện tại: ${activeCode}. Nhấn để chuyển sang code khác`;
     saveCodeCookie(activeCode);
 
     if (options.writeUrl !== false) {
@@ -678,29 +886,43 @@ function renderKeeps() {
 }
 
 function showUndoDelete(keep) {
+    if (activeToastElement) {
+        activeToastElement.remove();
+        activeToastElement = null;
+    }
+    if (activeToastTimer) {
+        clearTimeout(activeToastTimer);
+        activeToastTimer = null;
+    }
     if (undoDeleteTask) undoDeleteTask.remove();
+
     const toast = document.createElement("div");
     toast.className = "undo-toast";
     toast.innerHTML = `<span>Đã xóa ghi chú.</span><button type="button" class="ghost-button">Hoàn tác</button>`;
     document.body.append(toast);
     const undoButton = toast.querySelector("button");
-    const timer = setTimeout(() => toast.remove(), 5000);
+    const timer = setTimeout(() => {
+        toast.remove();
+        if (activeToastElement === toast) activeToastElement = null;
+    }, 5000);
     undoButton.addEventListener("click", async () => {
-    clearTimeout(timer);
-    toast.remove();
-    await fetch(notesUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: keep.title, image: keep.image, code: activeCode })
+        clearTimeout(timer);
+        toast.remove();
+        if (activeToastElement === toast) activeToastElement = null;
+        await fetch(notesUrl(), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: keep.title, image: keep.image, code: activeCode })
+        });
+        loadKeeps();
     });
-    loadKeeps();
-    });
+    activeToastElement = toast;
     undoDeleteTask = toast;
 }
 
 async function loadKeeps() {
     if (!activeCode) {
-    showCodeGate();
+    openCodeModal("initial");
     return;
     }
 
@@ -800,7 +1022,7 @@ form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     if (!activeCode) {
-    showCodeGate();
+    openCodeModal("initial");
     return;
     }
 
@@ -842,7 +1064,23 @@ form.addEventListener("submit", async (event) => {
 
 codeForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    setActiveCode(codeInput.value, { pushUrl: Boolean(activeCode) });
+
+    if (!activeCode) {
+        const nextCode = normalizeCode(codeInput.value);
+        if (!nextCode) {
+            setCodeGateError("Vui lòng nhập mã code.");
+            codeInput.focus();
+            return;
+        }
+        setActiveCode(nextCode, { pushUrl: false });
+        return;
+    }
+
+    if (codeModalMode === "rename") {
+        handleRenameCode();
+    } else {
+        handleSwitchCode();
+    }
 });
 
 titleInput.addEventListener("input", () => resizeTextarea(titleInput));
@@ -858,7 +1096,42 @@ removeImageButton.addEventListener("click", () => {
     clearComposerError();
     titleInput.focus();
 });
-codePill.addEventListener("click", showCodeGate);
+codePill.addEventListener("click", () => openCodeModal("switch"));
+codePill.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openCodeModal("switch");
+    }
+});
+if (renameCodeHeaderButton) {
+    renameCodeHeaderButton.addEventListener("click", () => openCodeModal("rename"));
+}
+if (closeCodeGateButton) {
+    closeCodeGateButton.addEventListener("click", () => {
+        if (activeCode) hideCodeGate();
+    });
+}
+if (cancelCodeGateButton) {
+    cancelCodeGateButton.addEventListener("click", () => {
+        if (activeCode) hideCodeGate();
+    });
+}
+if (switchCodeButton) {
+    switchCodeButton.addEventListener("click", handleSwitchCode);
+}
+if (renameCodeButton) {
+    renameCodeButton.addEventListener("click", handleRenameCode);
+}
+codeGate.addEventListener("click", (event) => {
+    if (event.target === codeGate && activeCode) {
+        hideCodeGate();
+    }
+});
+window.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !codeGate.hidden && activeCode) {
+        hideCodeGate();
+    }
+});
 closeNoteModalButton.addEventListener("click", closeNoteModal);
 closeNoteModalFooterButton.addEventListener("click", closeNoteModal);
 copyModalNoteButton.addEventListener("click", () => copyText(activeModalNote, copyModalNoteButton, "Đã copy"));
@@ -927,7 +1200,7 @@ function init() {
     return;
     }
 
-    showCodeGate();
+    openCodeModal("initial");
 }
 
 init();

@@ -88,10 +88,38 @@ h1 {
     text-overflow: ellipsis;
     white-space: nowrap;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+    transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease, border-color 140ms ease;
+}
+
+.code-pill:hover {
+    transform: translateY(-1px);
+    background: #ffffff;
+    border-color: var(--primary);
+    box-shadow: 0 8px 18px rgba(23, 32, 51, 0.08);
+}
+
+.code-pill:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.32);
+    outline-offset: 2px;
+}
+
+.code-pill-label {
+    color: var(--muted);
+    font-weight: 600;
 }
 
 .code-pill strong {
     color: var(--text);
+}
+
+.code-action-btn {
+    padding: 0 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
 }
 
 .composer {
@@ -242,6 +270,7 @@ button:focus-visible {
 
 .danger-button:hover {
     background: #fee2e2;
+    box-shadow: 0 8px 18px rgba(220, 38, 38, 0.12);
 }
 
 .icon-button {
@@ -256,49 +285,40 @@ button:focus-visible {
 
 .notes {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 14px;
-    align-items: start;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
 }
 
 .note-card {
     display: grid;
-    gap: 16px;
-    min-height: 150px;
+    grid-template-rows: auto 1fr auto;
+    gap: 14px;
+    min-height: 180px;
     padding: 16px;
-    border: 1px solid rgba(220, 227, 238, 0.9);
-    border-top: 5px solid var(--accent);
+    border: 1px solid rgba(220, 227, 238, 0.88);
     border-radius: var(--radius);
-    background: var(--panel);
-    box-shadow: 0 12px 30px rgba(23, 32, 51, 0.09);
+    background: rgba(255, 255, 255, 0.86);
+    box-shadow: 0 10px 30px rgba(23, 32, 51, 0.05);
+    backdrop-filter: blur(10px);
 }
 
 .note-text {
-    margin: 0;
-    overflow-wrap: anywhere;
-    line-height: 1.55;
-    font-size: 1rem;
+    line-height: 1.6;
+    word-break: break-word;
+    font-size: 0.96rem;
 }
 
 .markdown-body {
+    word-break: break-word;
     overflow-wrap: anywhere;
-    line-height: 1.6;
 }
 
-.markdown-body > :first-child {
+.markdown-body>*:first-child {
     margin-top: 0;
 }
 
-.markdown-body > :last-child {
+.markdown-body>*:last-child {
     margin-bottom: 0;
-}
-
-.markdown-body p,
-.markdown-body ul,
-.markdown-body ol,
-.markdown-body blockquote,
-.markdown-body pre {
-    margin: 0 0 0.85em;
 }
 
 .markdown-body h1,
@@ -307,72 +327,71 @@ button:focus-visible {
 .markdown-body h4,
 .markdown-body h5,
 .markdown-body h6 {
-    margin: 0 0 0.55em;
-    line-height: 1.22;
-    letter-spacing: 0;
+    margin: 1rem 0 0.5rem;
+    line-height: 1.25;
 }
 
 .markdown-body h1 {
-    font-size: 1.45rem;
+    font-size: 1.5rem;
 }
 
 .markdown-body h2 {
-    font-size: 1.28rem;
+    font-size: 1.3rem;
 }
 
 .markdown-body h3 {
-    font-size: 1.13rem;
+    font-size: 1.15rem;
 }
 
-.markdown-body h4,
-.markdown-body h5,
-.markdown-body h6 {
-    font-size: 1rem;
+.markdown-body p,
+.markdown-body ul,
+.markdown-body ol,
+.markdown-body blockquote {
+    margin: 0.6rem 0;
 }
 
 .markdown-body ul,
 .markdown-body ol {
-    padding-left: 1.35rem;
+    padding-left: 1.4rem;
 }
 
-.markdown-body li + li {
-    margin-top: 0.35em;
+.markdown-body li+li {
+    margin-top: 0.25rem;
 }
 
 .markdown-body a {
     color: var(--primary);
-    font-weight: 650;
-}
-
-.markdown-body blockquote {
-    padding: 0.1rem 0 0.1rem 0.85rem;
-    border-left: 3px solid var(--line);
-    color: var(--muted);
+    text-decoration: underline;
 }
 
 .markdown-body code {
-    border-radius: 5px;
-    padding: 0.08rem 0.28rem;
-    background: #e8eef8;
-    color: #0f172a;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    font-size: 0.92em;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    background: #eef2f6;
+    font-size: 0.88em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
 .markdown-body pre {
-    max-width: 100%;
-    overflow: auto;
+    overflow-x: auto;
     padding: 12px;
     border-radius: 6px;
-    background: #0f172a;
-    color: #e5eefc;
+    background: #111827;
+    color: #f9fafb;
 }
 
 .markdown-body pre code {
     padding: 0;
     background: transparent;
     color: inherit;
-    font-size: 0.9rem;
+}
+
+.markdown-body blockquote {
+    margin-left: 0;
+    margin-right: 0;
+    padding-left: 12px;
+    border-left: 3px solid var(--accent);
+    color: var(--muted);
 }
 
 .markdown-body hr {
@@ -452,26 +471,55 @@ button:focus-visible {
 }
 
 .code-card {
-    width: min(420px, 100%);
+    width: min(440px, 100%);
     display: grid;
     gap: 14px;
-    padding: 20px;
+    padding: 22px;
     border: 1px solid rgba(220, 227, 238, 0.95);
     border-radius: var(--radius);
     background: #ffffff;
     box-shadow: var(--shadow);
 }
 
-.code-card h2 {
+.code-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.code-card-header h2 {
     margin: 0;
     font-size: 1.45rem;
     letter-spacing: 0;
+}
+
+.code-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.current-code-badge {
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    background: var(--panel-soft);
+    border: 1px solid var(--line);
+    font-size: 0.95rem;
+    color: var(--muted);
+}
+
+.current-code-badge strong {
+    color: var(--primary);
+    word-break: break-all;
 }
 
 .code-card-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .note-modal {
@@ -555,11 +603,13 @@ button:focus-visible {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 10px 14px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: #fff;
     box-shadow: var(--shadow);
+    max-width: calc(100% - 32px);
+    font-weight: 500;
 }
 
 @media (max-width: 640px) {
@@ -618,8 +668,15 @@ button:focus-visible {
     .note-modal-actions button {
     width: 100%;
     }
-}
 
+    .code-card-actions {
+        flex-direction: column;
+    }
+
+    .code-card-actions button {
+        width: 100%;
+    }
+}
 
 .top-header {
   display: flex;
