@@ -35,7 +35,7 @@ body {
 }
 
 .app {
-    width: min(980px, calc(100% - 32px));
+    width: calc(100% - 32px);
     margin: 0 auto;
     padding: 36px 0 48px;
 }
@@ -286,7 +286,7 @@ button:focus-visible {
 .notes {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
+    gap: 8px;
 }
 
 .note-card {
@@ -431,7 +431,7 @@ button:focus-visible {
 
 .note-date {
     color: var(--muted);
-    font-size: 0.86rem;
+    font-size: 0.75rem;
     font-weight: 650;
 }
 
@@ -523,7 +523,7 @@ button:focus-visible {
 }
 
 .note-modal {
-    width: min(720px, calc(100% - 32px));
+    width: calc(100% - 32px);
     max-height: min(84vh, 760px);
     padding: 0;
     border: 0;
