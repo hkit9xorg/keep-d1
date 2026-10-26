@@ -707,3 +707,9 @@ button:focus-visible {
   border-radius: 12px;
   border: 1px solid #ddd;
 }
+
+
+pre {
+    word-break: break-all;
+    white-space: pre-wrap;
+}
