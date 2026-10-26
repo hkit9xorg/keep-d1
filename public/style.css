@@ -373,11 +373,30 @@ button:focus-visible {
 }
 
 .markdown-body pre {
+    position: relative;
     overflow-x: auto;
-    padding: 12px;
+    padding: 40px 12px 12px;
     border-radius: 6px;
     background: #111827;
     color: #f9fafb;
+}
+
+.pre-copy-button {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    padding: 5px 9px;
+    border: 1px solid #4b5563;
+    border-radius: 5px;
+    background: #1f2937;
+    color: #f9fafb;
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.pre-copy-button:hover {
+    background: #374151;
 }
 
 .markdown-body pre code {
@@ -437,7 +456,7 @@ button:focus-visible {
 
 .note-actions {
     display: flex;
-    gap: 4px;
+    gap: 1px;
     flex-wrap: wrap;
     justify-content: flex-end;
 }

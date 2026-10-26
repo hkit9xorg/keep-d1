@@ -550,7 +550,23 @@ function renderMarkdown(value) {
 function renderMarkdownInto(element, value) {
     const html = renderMarkdown(value);
     element.innerHTML = html;
+    addPreCopyButtons(element);
     element.hidden = !html;
+}
+
+function addPreCopyButtons(element) {
+    element.querySelectorAll("pre").forEach((pre) => {
+    const button = document.createElement("button");
+    button.className = "pre-copy-button";
+    button.type = "button";
+    button.textContent = "Copy";
+    button.setAttribute("aria-label", "Copy nội dung code");
+    button.addEventListener("click", () => {
+        const content = pre.querySelector("code")?.textContent ?? pre.textContent;
+        copyText(content, button, "Đã copy");
+    });
+    pre.append(button);
+    });
 }
 
 function openNoteModal(keep) {
@@ -959,7 +975,7 @@ function renderNote(keep) {
     if (hasText) {
     const text = document.createElement("div");
     text.className = "note-text markdown-body";
-    text.innerHTML = renderMarkdown(preview.text);
+    renderMarkdownInto(text, preview.text);
     card.append(text);
     }
 
@@ -1128,6 +1144,12 @@ codeGate.addEventListener("click", (event) => {
     }
 });
 window.addEventListener("keydown", (event) => {
+    if (event.ctrlKey && !event.altKey && !event.shiftKey && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        saveButton.click();
+        return;
+    }
+
     if (event.key === "Escape" && !codeGate.hidden && activeCode) {
         hideCodeGate();
     }
